@@ -1,8 +1,11 @@
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
+
 -- Enable HTTP extension
-create extension http with schema extensions;
+create extension if not exists http with schema extensions;
 
 -- Enable vector extension
-create extension vector with schema extensions;
+create extension if not exists vector with schema extensions;
 
 -- Function to update modified column
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -38,10 +41,20 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Policy to allow users to read their own files
-CREATE POLICY "Allow users to read their own files"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (auth.uid()::text = owner_id::text);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND policyname = 'Allow users to read their own files'
+    ) THEN
+        CREATE POLICY "Allow users to read their own files"
+        ON storage.objects FOR SELECT
+        TO authenticated
+        USING (auth.uid()::text = owner_id::text);
+    END IF;
+END $$;
 
 -- Function to delete a storage object
 CREATE OR REPLACE FUNCTION delete_storage_object(bucket TEXT, object TEXT, OUT status INT, OUT content TEXT)

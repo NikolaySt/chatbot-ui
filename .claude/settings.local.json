@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:Usersn_stosourcereposchatbot-uinode_modules.binsupabase db push)",
+      "Bash(npx supabase:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

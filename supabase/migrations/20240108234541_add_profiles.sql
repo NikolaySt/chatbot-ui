@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS profiles (
     -- ID
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
 
     -- RELATIONSHIPS
     user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -39,16 +39,26 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- INDEXES --
 
-CREATE INDEX idx_profiles_user_id ON profiles (user_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles (user_id);
 
 -- RLS --
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow full access to own profiles"
-    ON profiles
-    USING (user_id = auth.uid())
-    WITH CHECK (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+        AND tablename = 'profiles'
+        AND policyname = 'Allow full access to own profiles'
+    ) THEN
+        CREATE POLICY "Allow full access to own profiles"
+            ON profiles
+            USING (user_id = auth.uid())
+            WITH CHECK (user_id = auth.uid());
+    END IF;
+END $$;
 
 -- FUNCTIONS --
 
